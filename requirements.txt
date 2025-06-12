@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-dotenv
+pillow
+sqlalchemy
+langchain
+langchain-groq
+python-multipart
+google-generativeai

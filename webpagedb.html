@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Document Validation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #f9f9f9;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 8px;
+      border: 2px solid #ccc;
+      border-radius: 4px;
+    }
+    .form-group input.valid {
+      border-color: green;
+    }
+    .form-group input.invalid {
+      border-color: red;
+    }
+    .error {
+      color: red;
+      font-size: 0.9em;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Validate Documents in Real Time</h2>
+  <form id="validationForm">
+    <div class="form-group">
+      <label for="name">Full Name</label>
+      <input type="text" id="name" name="name">
+      <div class="error" id="name-error"></div>
+    </div>
+
+    <div class="form-group">
+      <label for="dob">Date of Birth</label>
+      <input type="date" id="dob" name="dob">
+      <div class="error" id="dob-error"></div>
+    </div>
+
+    <div class="form-group">
+      <label for="gender">Gender</label>
+      <input type="text" id="gender" name="gender">
+      <div class="error" id="gender-error"></div>
+    </div>
+
+    <div class="form-group">
+      <label for="father_name">Father's Name</label>
+      <input type="text" id="father_name" name="father_name">
+      <div class="error" id="father_name-error"></div>
+    </div>
+
+    <div class="form-group">
+      <label for="aadhar">Aadhaar Number</label>
+      <input type="text" id="aadhar" name="aadhar" maxlength="12">
+      <div class="error" id="aadhar-error"></div>
+    </div>
+
+    <div class="form-group">
+      <label for="pan">PAN Number</label>
+      <input type="text" id="pan" name="pan" maxlength="10">
+      <div class="error" id="pan-error"></div>
+    </div>
+  </form>
+
+  <script>
+    const fields = ["name", "dob", "gender", "father_name", "aadhar", "pan"];
+
+    fields.forEach(field => {
+      document.getElementById(field).addEventListener("input", debounce(validateFields, 500));
+    });
+
+    function debounce(func, wait) {
+      let timeout;
+      return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+      };
+    }
+
+    async function validateFields() {
+      const formData = {};
+      fields.forEach(field => {
+        formData[field] = document.getElementById(field).value.trim();
+      });
+
+      try {
+        const response = await fetch("http://localhost:8000/validate-documents/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        // Clear all errors
+        fields.forEach(field => {
+          document.getElementById(field).classList.remove("valid", "invalid");
+          document.getElementById(`${field}-error`).textContent = "";
+        });
+
+        if (response.status === 200) {
+          fields.forEach(field => {
+            document.getElementById(field).classList.add("valid");
+          });
+        } else if (response.status === 400 && result.mismatched_fields) {
+          for (let field in result.mismatched_fields) {
+            document.getElementById(field).classList.add("invalid");
+            document.getElementById(`${field}-error`).textContent = `Expected: ${result.mismatched_fields[field].expected}`;
+          }
+        }
+      } catch (error) {
+        console.error("Validation error:", error);
+      }
+    }
+  </script>
+</body>
+</html>
